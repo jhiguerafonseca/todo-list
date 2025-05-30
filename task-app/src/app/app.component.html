@@ -1,3 +1,34 @@
-<div class="bg-gray-100 min-h-screen py-8">
-  <app-task></app-task>
-</div>
+<nav class="bg-blue-600 p-4 shadow-md">
+  <div class="container mx-auto flex flex-wrap justify-between items-center">
+    <a routerLink="/tasks" class="text-white text-lg font-semibold hover:text-blue-200 mr-6 mb-2 sm:mb-0">Task Manager</a>
+
+    <div class="flex items-center space-x-4">
+      <a routerLink="/tasks" routerLinkActive="text-blue-200 font-bold"
+         [routerLinkActiveOptions]="{exact: true}"
+         class="text-white hover:text-blue-100 px-3 py-2 rounded-md text-sm font-medium">Tasks</a>
+
+      <ng-container *ngIf="(isLoggedIn$ | async) === false">
+        <a routerLink="/login" routerLinkActive="text-blue-200 font-bold"
+           class="text-white hover:text-blue-100 px-3 py-2 rounded-md text-sm font-medium">Login</a>
+        <a routerLink="/register" routerLinkActive="text-blue-200 font-bold"
+           class="text-white hover:text-blue-100 px-3 py-2 rounded-md text-sm font-medium">Register</a>
+      </ng-container>
+
+      <button *ngIf="isLoggedIn$ | async" (click)="logout()"
+              class="text-white hover:text-blue-100 px-3 py-2 rounded-md text-sm font-medium bg-red-500 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-700 focus:ring-opacity-50">
+        Logout
+      </button>
+    </div>
+  </div>
+</nav>
+
+<main class="bg-gray-100 min-h-screen">
+  <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+    <!-- Optional: Welcome message for logged-in users -->
+    <div *ngIf="isLoggedIn$ | async" class="text-right text-sm text-gray-600 mb-2">
+      <!-- You can display user email or name here if available from AuthService -->
+      <!-- Example: <span *ngIf="authService.getCurrentUser() | async as user">Welcome, {{ user?.email }}</span> -->
+    </div>
+    <router-outlet></router-outlet>
+  </div>
+</main>

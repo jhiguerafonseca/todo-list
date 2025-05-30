@@ -1,27 +1,30 @@
 <div class="container mx-auto p-4 max-w-2xl">
 
   <h2 class="text-2xl font-bold mb-4 text-center text-blue-600">Create New Task</h2>
-  <form (ngSubmit)="addTask()" #taskForm="ngForm" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-6">
+  <form (ngSubmit)="onAddTask()" #taskForm="ngForm" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-6">
     <div class="mb-4">
       <label for="title" class="block text-gray-700 text-sm font-bold mb-2">Title:</label>
-      <input type="text" id="title" name="title" [(ngModel)]="newTitle" required #title="ngModel"
+      <input type="text" id="title" name="title" [(ngModel)]="newTitle" required #titleModel="ngModel"
              class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-             [class.border-red-500]="title.invalid && (title.dirty || title.touched)">
-      <div *ngIf="title.invalid && (title.dirty || title.touched)" class="text-red-500 text-xs italic mt-1">
+             [class.border-red-500]="titleModel.invalid && (titleModel.dirty || titleModel.touched)">
+      <div *ngIf="titleModel.invalid && (titleModel.dirty || titleModel.touched)" class="text-red-500 text-xs italic mt-1">
         Title is required.
       </div>
     </div>
     <div class="mb-6">
       <label for="description" class="block text-gray-700 text-sm font-bold mb-2">Description:</label>
-      <textarea id="description" name="description" [(ngModel)]="newDescription" required #description="ngModel"
+      <textarea id="description" name="description" [(ngModel)]="newDescription" required #descriptionModel="ngModel"
                 class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline h-24"
-                [class.border-red-500]="description.invalid && (description.dirty || description.touched)"></textarea>
-      <div *ngIf="description.invalid && (description.dirty || description.touched)" class="text-red-500 text-xs italic mt-1">
+                [class.border-red-500]="descriptionModel.invalid && (descriptionModel.dirty || descriptionModel.touched)"></textarea>
+      <div *ngIf="descriptionModel.invalid && (descriptionModel.dirty || descriptionModel.touched)" class="text-red-500 text-xs italic mt-1">
         Description is required.
       </div>
     </div>
+    <div *ngIf="errorMessage" class="mb-4 text-red-500 text-sm text-center p-2 bg-red-100 rounded">
+      {{ errorMessage }}
+    </div>
     <div class="flex items-center justify-between">
-      <button type="submit" [disabled]="taskForm.invalid"
+      <button type="submit" [disabled]="!taskForm.form.valid"
               class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:bg-gray-400">
         Add Task
       </button>
@@ -31,39 +34,53 @@
   <hr class="my-8 border-gray-300">
 
   <h2 class="text-2xl font-bold mb-4 text-center text-green-600">Task List</h2>
-  <div *ngIf="tasks.length === 0" class="text-center text-gray-500 py-4">
-    <p class="text-lg">No tasks yet. Add one above!</p>
-  </div>
+  
+  <!-- Display loading or error state for tasks$ if needed, or just let async pipe handle it -->
+  <ng-container *ngIf="tasks$ | async as tasks; else loadingOrError">
+    <div *ngIf="tasks.length === 0" class="text-center text-gray-500 py-4">
+      <p class="text-lg">No tasks yet. Add one above!</p>
+      <p class="text-sm">(Ensure you are logged in to see your tasks)</p>
+    </div>
 
-  <ul *ngIf="tasks.length > 0" class="space-y-4">
-    <li *ngFor="let task of tasks"
-        class="bg-white shadow-lg rounded-lg p-6 transition-all duration-300 ease-in-out hover:shadow-xl"
-        [class.opacity-60]="task.completed"
-        [class.bg-green-50]="task.completed">
-      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
-        <div class="flex-grow mb-4 sm:mb-0">
-          <h3 class="text-xl font-semibold text-gray-800 mb-1" [class.line-through]="task.completed">{{ task.title }}</h3>
-          <p class="text-gray-600 text-sm mb-2" [class.line-through]="task.completed">{{ task.description }}</p>
-          <p class="text-xs text-gray-500">
-            Status: <span [ngClass]="{'font-bold text-green-600': task.completed, 'text-yellow-600 font-semibold': !task.completed}">
-                      {{ task.completed ? 'Completed' : 'Pending' }}
-                    </span>
-          </p>
+    <ul *ngIf="tasks.length > 0" class="space-y-4">
+      <li *ngFor="let task of tasks"
+          class="bg-white shadow-lg rounded-lg p-6 transition-all duration-300 ease-in-out hover:shadow-xl"
+          [class.opacity-60]="task.completed"
+          [class.bg-green-50]="task.completed">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+          <div class="flex-grow mb-4 sm:mb-0">
+            <h3 class="text-xl font-semibold text-gray-800 mb-1" [class.line-through]="task.completed">{{ task.title }}</h3>
+            <p class="text-gray-600 text-sm mb-2" [class.line-through]="task.completed">{{ task.description }}</p>
+            <p class="text-xs text-gray-500">
+              Status: <span [ngClass]="{'font-bold text-green-600': task.completed, 'text-yellow-600 font-semibold': !task.completed}">
+                        {{ task.completed ? 'Completed' : 'Pending' }}
+                      </span>
+            </p>
+            <p *ngIf="task.createdAt" class="text-xs text-gray-400 mt-1">
+              Created: {{ task.createdAt | date:'short' }} <!-- Assuming createdAt is a Date object or timestamp -->
+            </p>
+          </div>
+          <div class="flex items-center space-x-3 flex-shrink-0 mt-4 sm:mt-0">
+            <label class="flex items-center cursor-pointer">
+              <input type="checkbox" [checked]="task.completed" (change)="onToggleComplete(task)"
+                     class="form-checkbox h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500">
+              <span class="ml-2 text-sm text-gray-700" [class.line-through]="task.completed">
+                {{ task.completed ? 'Mark Pending' : 'Mark Completed' }}
+              </span>
+            </label>
+            <button (click)="onDeleteTask(task)"
+                    class="bg-red-500 hover:bg-red-700 text-white text-xs font-bold py-1 px-3 rounded focus:outline-none focus:shadow-outline transition-colors duration-300">
+              Delete
+            </button>
+          </div>
         </div>
-        <div class="flex items-center space-x-3 flex-shrink-0">
-          <label class="flex items-center cursor-pointer">
-            <input type="checkbox" [checked]="task.completed" (change)="toggleComplete(task)"
-                   class="form-checkbox h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500">
-            <span class="ml-2 text-sm text-gray-700" [class.line-through]="task.completed">
-              {{ task.completed ? 'Mark Pending' : 'Mark Completed' }}
-            </span>
-          </label>
-          <button (click)="deleteTask(task)"
-                  class="bg-red-500 hover:bg-red-700 text-white text-xs font-bold py-1 px-3 rounded focus:outline-none focus:shadow-outline transition-colors duration-300">
-            Delete
-          </button>
-        </div>
-      </div>
-    </li>
-  </ul>
+      </li>
+    </ul>
+  </ng-container>
+
+  <ng-template #loadingOrError>
+    <!-- You can put a loading spinner here or specific error message if tasks$ emits an error -->
+    <p class="text-center text-gray-500 py-4">Loading tasks...</p>
+  </ng-template>
+
 </div>

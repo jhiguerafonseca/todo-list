@@ -1,45 +1,84 @@
-import { Component } from '@angular/core';
-import { Task } from './task.model'; // Import the Task interface
+import { Component, OnInit } from '@angular/core';
+import { Observable } from 'rxjs';
+import { Task } from './task.model';
+import { TaskService } from '../core/task.service'; // Adjusted path
+// AuthService might not be directly needed here if TaskService handles user context for its operations
+// import { AuthService } from '../core/auth.service'; 
 
 @Component({
   selector: 'app-task',
-  // standalone: false, // Not a standalone component
   templateUrl: './task.component.html',
-  styleUrl: './task.component.scss'
+  styleUrls: ['./task.component.scss'] // Corrected property name
 })
-export class TaskComponent {
-  tasks: Task[] = [];
+export class TaskComponent implements OnInit {
+  tasks$: Observable<Task[]>;
   newTitle: string = '';
   newDescription: string = '';
+  errorMessage: string | null = null; // For displaying errors from the service
 
-  constructor() { }
+  constructor(
+    private taskService: TaskService
+    // private authService: AuthService // Only if needed directly for UI logic not covered by TaskService
+  ) {
+    this.tasks$ = this.taskService.tasks$;
+  }
 
-  addTask(): void {
+  ngOnInit(): void {
+    // tasks$ is already initialized in the constructor via taskService.tasks$
+    // If there's any specific logic needed on init related to tasks, it can go here.
+    // For example, handling initial loading state if tasks$ doesn't emit immediately.
+  }
+
+  async onAddTask(): Promise<void> {
+    this.errorMessage = null;
     if (this.newTitle.trim() === '' || this.newDescription.trim() === '') {
-      // Basic validation, can be enhanced
-      alert('Title and Description are required.');
+      this.errorMessage = 'Title and Description are required.';
+      // alert('Title and Description are required.'); // Replaced with errorMessage
       return;
     }
 
-    const newTask: Task = {
-      id: Date.now(), // Simple unique ID generation
-      title: this.newTitle,
-      description: this.newDescription,
-      completed: false
-    };
-
-    this.tasks.push(newTask);
-
-    // Reset form fields
-    this.newTitle = '';
-    this.newDescription = '';
+    try {
+      await this.taskService.addTask(this.newTitle, this.newDescription);
+      this.newTitle = '';
+      this.newDescription = '';
+    } catch (error: any) {
+      console.error('Error adding task:', error);
+      this.errorMessage = error.message || 'Failed to add task. Please ensure you are logged in.';
+      // alert('Failed to add task. Please ensure you are logged in.'); // Replaced with errorMessage
+    }
   }
 
-  toggleComplete(task: Task): void {
-    task.completed = !task.completed;
+  async onToggleComplete(task: Task): Promise<void> {
+    if (!task.id) {
+      console.error('Task ID is missing, cannot update completion status.');
+      this.errorMessage = 'Task ID is missing. Cannot update.';
+      return;
+    }
+    try {
+      await this.taskService.updateTask(task.id, { completed: !task.completed });
+    } catch (error) {
+      console.error('Error toggling task completion:', error);
+      this.errorMessage = 'Failed to update task status.';
+      // alert('Failed to update task status.'); // Replaced with errorMessage
+    }
   }
 
-  deleteTask(taskToDelete: Task): void {
-    this.tasks = this.tasks.filter(task => task.id !== taskToDelete.id);
+  async onDeleteTask(task: Task): Promise<void> {
+    if (!task.id) {
+      console.error('Task ID is missing, cannot delete task.');
+      this.errorMessage = 'Task ID is missing. Cannot delete.';
+      return;
+    }
+    // Optional: Add a confirmation dialog before deleting
+    // if (!confirm(`Are you sure you want to delete task: "${task.title}"?`)) {
+    //   return;
+    // }
+    try {
+      await this.taskService.deleteTask(task.id);
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      this.errorMessage = 'Failed to delete task.';
+      // alert('Failed to delete task.'); // Replaced with errorMessage
+    }
   }
 }
