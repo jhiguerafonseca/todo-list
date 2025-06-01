@@ -53,7 +53,7 @@ describe('TaskService', () => {
       add: jasmine.createSpy('add').and.returnValue(Promise.resolve({ id: 'new-doc-id' })), // Mock document reference
       doc: jasmine.createSpy('doc').and.returnValue(mockDocument)
     };
-    
+
     angularFirestoreMock = {
       collection: jasmine.createSpy('collection').and.returnValue(mockCollection)
     };
@@ -80,13 +80,13 @@ describe('TaskService', () => {
 
       const expectedQueryFn = (ref: any) => ref.where('userId', '==', mockUser.uid).orderBy('createdAt', 'desc');
       mockCollection.snapshotChanges.and.returnValue(of(createMockActions(mockTaskData)));
-      
+
       service.tasks$.subscribe(tasks => {
         expect(tasks.length).toBe(2);
         expect(tasks[0].id).toBe('1');
         expect(tasks[0].title).toBe('Task 1');
         expect(tasks[1].userId).toBe(mockUser.uid);
-        
+
         // Check if afs.collection was called with a query function
         const collectionArgs = angularFirestoreMock.collection.calls.mostRecent().args;
         expect(collectionArgs[0]).toBe('tasks');
@@ -103,7 +103,7 @@ describe('TaskService', () => {
     it('should emit an empty array when no user is logged in', (done) => {
       authStateSubject.next(null); // No user logged in
       service = TestBed.inject(TaskService); // Instantiate service AFTER auth state is set
-      
+
       service.tasks$.subscribe(tasks => {
         expect(tasks).toEqual([]);
         expect(angularFirestoreMock.collection).not.toHaveBeenCalled(); // Should not attempt to query if no user
@@ -123,7 +123,7 @@ describe('TaskService', () => {
       const title = 'New Task';
       const description = 'New Description';
       await service.addTask(title, description);
-      
+
       expect(mockCollection.add).toHaveBeenCalled();
       const addedTask = mockCollection.add.calls.mostRecent().args[0] as Task;
       expect(addedTask.title).toBe(title);

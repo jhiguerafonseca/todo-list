@@ -67,7 +67,7 @@ export class TaskService {
       return Promise.reject('Tasks collection not initialized.');
     }
     // Ensure `updatedAt` is part of changes if you want to track updates
-    // changes.updatedAt = new Date(); 
+    // changes.updatedAt = new Date();
     return this.tasksCollection.doc(taskId).update(changes);
   }
 

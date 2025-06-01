@@ -5,7 +5,8 @@ import { AuthService } from '../../core/auth.service'; // Adjusted path
 @Component({
   selector: 'app-register',
   templateUrl: './register.component.html',
-  styleUrls: ['./register.component.scss'] // Corrected property name
+  styleUrls: ['./register.component.scss'], // Corrected property name
+  standalone: false // Explicitly set to false
 })
 export class RegisterComponent {
   email!: string; // Definite assignment assertion

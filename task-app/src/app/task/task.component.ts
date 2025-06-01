@@ -3,12 +3,13 @@ import { Observable } from 'rxjs';
 import { Task } from './task.model';
 import { TaskService } from '../core/task.service'; // Adjusted path
 // AuthService might not be directly needed here if TaskService handles user context for its operations
-// import { AuthService } from '../core/auth.service'; 
+// import { AuthService } from '../core/auth.service';
 
 @Component({
   selector: 'app-task',
   templateUrl: './task.component.html',
-  styleUrls: ['./task.component.scss'] // Corrected property name
+  styleUrls: ['./task.component.scss'], // Corrected property name
+  standalone: false // Explicitly set to false
 })
 export class TaskComponent implements OnInit {
   tasks$: Observable<Task[]>;

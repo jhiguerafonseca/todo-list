@@ -5,7 +5,8 @@ import { AuthService } from '../../core/auth.service'; // Adjusted path
 @Component({
   selector: 'app-login',
   templateUrl: './login.component.html',
-  styleUrls: ['./login.component.scss'] // Corrected property name
+  styleUrls: ['./login.component.scss'], // Corrected property name
+  standalone: false // Explicitly set to false
 })
 export class LoginComponent {
   email!: string; // Definite assignment assertion

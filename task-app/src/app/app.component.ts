@@ -6,7 +6,8 @@ import { AuthService } from './core/auth.service';
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
-  styleUrls: ['./app.component.scss'] // Corrected property name
+  styleUrls: ['./app.component.scss'], // Corrected property name
+  standalone: false // Explicitly set to false
 })
 export class AppComponent {
   title = 'task-app';

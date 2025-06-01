@@ -113,7 +113,7 @@ describe('TaskComponent', () => {
       expect(mockTaskService.addTask).not.toHaveBeenCalled();
       expect(component.errorMessage).toBe('Title and Description are required.');
     });
-    
+
     it('should display error message if taskService.addTask fails', async () => {
       mockTaskService.addTask.and.returnValue(Promise.reject(new Error('Failed to add')));
       component.newTitle = 'Test';
@@ -130,7 +130,7 @@ describe('TaskComponent', () => {
       await component.onToggleComplete(mockTask);
       expect(mockTaskService.updateTask).toHaveBeenCalledWith('1', { completed: true });
     });
-    
+
     it('should display error message if taskService.updateTask fails', async () => {
       mockTaskService.updateTask.and.returnValue(Promise.reject(new Error('Update failed')));
       await component.onToggleComplete(mockTask);
@@ -158,7 +158,7 @@ describe('TaskComponent', () => {
       await component.onDeleteTask(mockTask);
       expect(component.errorMessage).toBe('Failed to delete task.');
     });
-    
+
     it('should not call taskService.deleteTask if task id is missing', async () => {
       const taskWithoutId: Task = { title: 'Test', description: 'Desc', userId: 'uid1', completed: false };
       await component.onDeleteTask(taskWithoutId);
