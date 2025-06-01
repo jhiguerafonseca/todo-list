@@ -1,80 +1,93 @@
 import { Injectable } from '@angular/core';
-import { AngularFirestore, AngularFirestoreCollection, AngularFirestoreDocument } from '@angular/fire/compat/firestore';
-import { Observable, of } from 'rxjs';
-import { map, switchMap, take } from 'rxjs/operators';
-import { Task } from '../task/task.model'; // Assuming path, adjust if TaskComponent was moved or model is elsewhere
+import { AngularFirestore } from '@angular/fire/compat/firestore';
+import { Observable, of, firstValueFrom, BehaviorSubject } from 'rxjs'; // Added BehaviorSubject
+import { map, switchMap, catchError, tap } from 'rxjs/operators'; // Added tap
+import { Task } from '../task/task.model';
 import { AuthService } from './auth.service';
+import firebase from 'firebase/compat/app';
 
 @Injectable({
   providedIn: 'root'
 })
 export class TaskService {
-  private tasksCollection?: AngularFirestoreCollection<Task>; // Optional because it depends on user login
   tasks$: Observable<Task[]>;
+  private _errorMessage$ = new BehaviorSubject<string | null>(null);
+  public errorMessage$: Observable<string | null> = this._errorMessage$.asObservable();
 
   constructor(
     private afs: AngularFirestore,
     private authService: AuthService
   ) {
     this.tasks$ = this.authService.getCurrentUser().pipe(
-      switchMap(user => {
-        if (user) {
-          // User is logged in, set up the collection and stream tasks
-          this.tasksCollection = this.afs.collection<Task>('tasks', ref =>
-            ref.where('userId', '==', user.uid).orderBy('createdAt', 'desc') // Optional: order by creation time
-          );
-          return this.tasksCollection.snapshotChanges().pipe(
+      tap(() => this._errorMessage$.next(null)), // Clear previous errors on user change
+      switchMap((user: firebase.User | null) => {
+        if (user && user.uid) {
+          this._errorMessage$.next(null); // Clear error on successful user fetch
+          return this.afs.collection<Task>('tasks', ref =>
+            ref.where('userId', '==', user.uid).orderBy('createdAt', 'desc')
+          ).snapshotChanges().pipe(
             map(actions => {
+              this._errorMessage$.next(null); // Clear error on successful data fetch
               return actions.map(a => {
                 const data = a.payload.doc.data() as Task;
                 const id = a.payload.doc.id;
                 return { id, ...data };
               });
+            }),
+            catchError(error => {
+              console.error('Error fetching tasks:', error);
+              this._errorMessage$.next('Failed to load tasks. Please try again later.');
+              return of([]); // Return empty array on error to keep the stream alive
             })
           );
         } else {
-          // User is not logged in, tasksCollection remains undefined
-          this.tasksCollection = undefined;
-          // Return an observable of an empty array
+          this._errorMessage$.next(null); // No user, so no error related to fetching tasks for a user
           return of([]);
         }
+      }),
+      catchError(error => { // Catch errors from authService.getCurrentUser() itself
+        console.error('Error in user authentication stream:', error);
+        this._errorMessage$.next('Authentication error. Cannot fetch tasks.');
+        return of([]);
       })
     );
   }
 
   async addTask(title: string, description: string): Promise<void> {
-    const user = await this.authService.getCurrentUser().pipe(take(1)).toPromise();
-    if (!user) {
+    this._errorMessage$.next(null); // Clear previous service errors
+    const user = await firstValueFrom(this.authService.getCurrentUser());
+    if (!user || !user.uid) {
       throw new Error('User not logged in. Cannot add task.');
     }
-    if (!this.tasksCollection) {
-      // This case should ideally not be hit if tasks$ logic is correct and UI prevents adding when not logged in
-      throw new Error('Tasks collection not initialized. User might not be fully logged in or collection setup failed.');
-    }
 
+    const tasksCollectionRef = this.afs.collection<Task>('tasks');
     const newTask: Task = {
       userId: user.uid,
       title,
       description,
       completed: false,
-      createdAt: new Date() // Optional: add a timestamp
+      createdAt: new Date()
     };
-    await this.tasksCollection.add(newTask);
+    await tasksCollectionRef.add(newTask);
   }
 
-  updateTask(taskId: string, changes: Partial<Task>): Promise<void> {
-    if (!this.tasksCollection) {
-      return Promise.reject('Tasks collection not initialized.');
+  async updateTask(taskId: string, changes: Partial<Task>): Promise<void> {
+    this._errorMessage$.next(null);
+    if (!taskId) {
+        throw new Error('Task ID is required to update.');
     }
-    // Ensure `updatedAt` is part of changes if you want to track updates
-    // changes.updatedAt = new Date();
-    return this.tasksCollection.doc(taskId).update(changes);
+    // Consider re-fetching user or ensuring user context if rules depend on it for updates
+    // For now, assuming Firestore rules handle unauthorized updates if user context changed.
+    const taskDocRef = this.afs.doc<Task>(`tasks/${taskId}`);
+    await taskDocRef.update(changes);
   }
 
-  deleteTask(taskId: string): Promise<void> {
-    if (!this.tasksCollection) {
-      return Promise.reject('Tasks collection not initialized.');
+  async deleteTask(taskId: string): Promise<void> {
+    this._errorMessage$.next(null);
+    if (!taskId) {
+        throw new Error('Task ID is required to delete.');
     }
-    return this.tasksCollection.doc(taskId).delete();
+    const taskDocRef = this.afs.doc<Task>(`tasks/${taskId}`);
+    await taskDocRef.delete();
   }
 }

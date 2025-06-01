@@ -79,8 +79,15 @@
   </ng-container>
 
   <ng-template #loadingOrError>
-    <!-- You can put a loading spinner here or specific error message if tasks$ emits an error -->
-    <p class="text-center text-gray-500 py-4">Loading tasks...</p>
+    <!-- Check for error message from TaskService first (e.g., for task list loading issues) -->
+    <div *ngIf="taskService.errorMessage$ | async as serviceErrorMsg" class="text-center text-red-500 py-4 p-2 bg-red-100 rounded">
+      <p class="text-lg font-semibold">Error loading tasks:</p>
+      <p>{{ serviceErrorMsg }}</p>
+    </div>
+    <!-- If no service error, show loading message -->
+    <div *ngIf="!(taskService.errorMessage$ | async)" class="text-center text-gray-500 py-4">
+      <p>Loading tasks...</p> <!-- Or a spinner component -->
+    </div>
   </ng-template>
 
 </div>

@@ -15,13 +15,13 @@ export class TaskComponent implements OnInit {
   tasks$: Observable<Task[]>;
   newTitle: string = '';
   newDescription: string = '';
-  errorMessage: string | null = null; // For displaying errors from the service
+  errorMessage: string | null = null; // For displaying errors from write operations
 
   constructor(
-    private taskService: TaskService
+    public taskService: TaskService // Made public to access errorMessage$ in template
     // private authService: AuthService // Only if needed directly for UI logic not covered by TaskService
   ) {
-    this.tasks$ = this.taskService.tasks$;
+    this.tasks$ = this.taskService.tasks$; // tasks$ for task list
   }
 
   ngOnInit(): void {
@@ -31,10 +31,9 @@ export class TaskComponent implements OnInit {
   }
 
   async onAddTask(): Promise<void> {
-    this.errorMessage = null;
+    this.errorMessage = null; // Clear local error for this operation
     if (this.newTitle.trim() === '' || this.newDescription.trim() === '') {
       this.errorMessage = 'Title and Description are required.';
-      // alert('Title and Description are required.'); // Replaced with errorMessage
       return;
     }
 
@@ -44,12 +43,12 @@ export class TaskComponent implements OnInit {
       this.newDescription = '';
     } catch (error: any) {
       console.error('Error adding task:', error);
-      this.errorMessage = error.message || 'Failed to add task. Please ensure you are logged in.';
-      // alert('Failed to add task. Please ensure you are logged in.'); // Replaced with errorMessage
+      this.errorMessage = error.message || 'Failed to add task.'; // Display error from service or generic
     }
   }
 
   async onToggleComplete(task: Task): Promise<void> {
+    this.errorMessage = null; // Clear local error
     if (!task.id) {
       console.error('Task ID is missing, cannot update completion status.');
       this.errorMessage = 'Task ID is missing. Cannot update.';
@@ -57,29 +56,24 @@ export class TaskComponent implements OnInit {
     }
     try {
       await this.taskService.updateTask(task.id, { completed: !task.completed });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error toggling task completion:', error);
-      this.errorMessage = 'Failed to update task status.';
-      // alert('Failed to update task status.'); // Replaced with errorMessage
+      this.errorMessage = 'Failed to update task status.'; // Display error from service or generic
     }
   }
 
   async onDeleteTask(task: Task): Promise<void> {
+    this.errorMessage = null; // Clear local error
     if (!task.id) {
       console.error('Task ID is missing, cannot delete task.');
       this.errorMessage = 'Task ID is missing. Cannot delete.';
       return;
     }
-    // Optional: Add a confirmation dialog before deleting
-    // if (!confirm(`Are you sure you want to delete task: "${task.title}"?`)) {
-    //   return;
-    // }
     try {
       await this.taskService.deleteTask(task.id);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting task:', error);
-      this.errorMessage = 'Failed to delete task.';
-      // alert('Failed to delete task.'); // Replaced with errorMessage
+      this.errorMessage = 'Failed to delete task.'; // Display error from service or generic
     }
   }
 }
